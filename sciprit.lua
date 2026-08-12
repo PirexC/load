@@ -1,4 +1,3 @@
-loadstring([[
 -- Hizmetler
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -23,7 +22,6 @@ FOVCircle.Color = Color3.fromRGB(180, 130, 220)
 FOVCircle.Filled = false
 FOVCircle.Transparency = 0.7
 
--- Özelleştirilebilir Renk Deposu
 local CustomConfig = {
 	Name = Color3.fromRGB(255, 255, 255),
 	HealthDist = Color3.fromRGB(90, 255, 120),
@@ -445,12 +443,11 @@ local SkeletonToggle = addVisualElement(195, "İskelet (Skeleton)", "Skeleton")
 local GlowToggle = addVisualElement(240, "Glow / Aura Efekti", nil, true)
 local CowboyHatToggle = addVisualElement(285, "Rainbow Cowboy Şapkası", nil, false)
 
--- Mantık Fonksiyonları
 local aimbotEnabled, silentEnabled, fovEnabled = false, false, false
 local aimKey = Enum.UserInputType.MouseButton2
 local isKeyDown, bindingKey, toggleActiveState = false, false, false
 local aimMode = "Hold"
-local lockedTarget = nil -- Sabit kilitlenme için hedef değişkeni
+local lockedTarget = nil
 
 local nameEspEnabled, healthEspEnabled, distEspEnabled, boxEspEnabled, skeletonEnabled, glowEnabled, cowboyHatEnabled = false, false, false, false, false, false, false
 local espCache = {}
@@ -716,7 +713,7 @@ RunService.RenderStepped:Connect(function()
 				c.NameText.Color = CustomConfig.Name
 				c.InfoText.Color = CustomConfig.HealthDist
 				c.Box.Color = CustomConfig.Box
-				for _, line in pairs(c.Skeleton) do line.Color = CustomConfig.Skeleton
+				for _, line in pairs(c.Skeleton) do line.Color = CustomConfig.Skeleton end
 
 				if rootPart and humanoid.Health > 0 then
 					local vector, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
@@ -785,7 +782,6 @@ RunService.RenderStepped:Connect(function()
 
 	local shouldAim = aimbotEnabled and ((aimMode == "Hold" and isKeyDown) or (aimMode == "Toggle" and toggleActiveState))
 	if shouldAim then
-		-- Hedef kilitlenme mantığı: Eğer kilitli bir hedefimiz varsa ve hala yaşıyorsa, yeni hedef arama ona odaklanmaya devam et.
 		if not lockedTarget or not lockedTarget.Character or not lockedTarget.Character:FindFirstChild("Head") or lockedTarget.Character.Humanoid.Health <= 0 then
 			lockedTarget = getClosestPlayerInFOV()
 		end
@@ -810,4 +806,3 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 end)
-]])()
