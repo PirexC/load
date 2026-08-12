@@ -155,17 +155,6 @@ TabVisualsBtn.TextColor3 = Color3.fromRGB(150, 150, 170)
 TabVisualsBtn.TextSize = 12
 local UICornerTab2 = Instance.new("UICorner"); UICornerTab2.CornerRadius = UDim.new(0, 6); UICornerTab2.Parent = TabVisualsBtn
 
-local ThemeButton = Instance.new("TextButton")
-ThemeButton.Parent = TopBar
-ThemeButton.BackgroundColor3 = Color3.fromRGB(45, 35, 65)
-ThemeButton.Position = UDim2.new(1, -78, 0, 8)
-ThemeButton.Size = UDim2.new(0, 32, 0, 28)
-ThemeButton.Font = Enum.Font.GothamBold
-ThemeButton.Text = "🎨"
-ThemeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ThemeButton.TextSize = 12
-local UICornerTheme = Instance.new("UICorner"); UICornerTheme.CornerRadius = UDim.new(0, 6); UICornerTheme.Parent = ThemeButton
-
 local MinimizeButton = Instance.new("TextButton")
 MinimizeButton.Parent = TopBar
 MinimizeButton.BackgroundColor3 = Color3.fromRGB(45, 35, 65)
@@ -461,6 +450,7 @@ local aimbotEnabled, silentEnabled, fovEnabled = false, false, false
 local aimKey = Enum.UserInputType.MouseButton2
 local isKeyDown, bindingKey, toggleActiveState = false, false, false
 local aimMode = "Hold"
+local lockedTarget = nil -- Sabit kilitlenme için hedef değişkeni
 
 local nameEspEnabled, healthEspEnabled, distEspEnabled, boxEspEnabled, skeletonEnabled, glowEnabled, cowboyHatEnabled = false, false, false, false, false, false, false
 local espCache = {}
@@ -508,12 +498,12 @@ AimbotToggle.MouseButton1Click:Connect(function()
 	aimbotEnabled = not aimbotEnabled
 	AimbotToggle.Text = "Aimbot: " .. (aimbotEnabled and "AÇIK" or "KAPALI")
 	AimbotToggle.TextColor3 = aimbotEnabled and Color3.fromRGB(90, 255, 90) or Color3.fromRGB(255, 90, 90)
-	if not aimbotEnabled then toggleActiveState = false end
+	if not aimbotEnabled then toggleActiveState = false; lockedTarget = nil end
 end)
 
 ModeButton.MouseButton1Click:Connect(function()
 	if aimMode == "Hold" then aimMode = "Toggle"; ModeButton.Text = "Mod: Toggle (Tek Tıkla)" else aimMode = "Hold"; ModeButton.Text = "Mod: Hold (Bas-Tut)" end
-	toggleActiveState = false
+	toggleActiveState = false; lockedTarget = nil
 end)
 
 KeybindButton.MouseButton1Click:Connect(function() bindingKey = true; KeybindButton.Text = "Bir tuşa basın..." end)
@@ -527,13 +517,21 @@ UserInputService.InputBegan:Connect(function(input)
 		end
 	else
 		if input.UserInputType == aimKey or input.KeyCode == aimKey then
-			if aimMode == "Hold" then isKeyDown = true elseif aimMode == "Toggle" then toggleActiveState = not toggleActiveState end
+			if aimMode == "Hold" then 
+				isKeyDown = true 
+			elseif aimMode == "Toggle" then 
+				toggleActiveState = not toggleActiveState 
+				if not toggleActiveState then lockedTarget = nil end
+			end
 		end
 	end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-	if aimMode == "Hold" and (input.UserInputType == aimKey or input.KeyCode == aimKey) then isKeyDown = false end
+	if aimMode == "Hold" and (input.UserInputType == aimKey or input.KeyCode == aimKey) then 
+		isKeyDown = false 
+		lockedTarget = nil 
+	end
 end)
 
 FovToggle.MouseButton1Click:Connect(function()
@@ -718,7 +716,7 @@ RunService.RenderStepped:Connect(function()
 				c.NameText.Color = CustomConfig.Name
 				c.InfoText.Color = CustomConfig.HealthDist
 				c.Box.Color = CustomConfig.Box
-				for _, line in pairs(c.Skeleton) do line.Color = CustomConfig.Skeleton end
+				for _, line in pairs(c.Skeleton) do line.Color = CustomConfig.Skeleton
 
 				if rootPart and humanoid.Health > 0 then
 					local vector, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
@@ -787,12 +785,18 @@ RunService.RenderStepped:Connect(function()
 
 	local shouldAim = aimbotEnabled and ((aimMode == "Hold" and isKeyDown) or (aimMode == "Toggle" and toggleActiveState))
 	if shouldAim then
-		local target = getClosestPlayerInFOV()
-		if target and target.Character and target.Character:FindFirstChild("Head") then
-			local targetPos = target.Character.Head.Position
+		-- Hedef kilitlenme mantığı: Eğer kilitli bir hedefimiz varsa ve hala yaşıyorsa, yeni hedef arama ona odaklanmaya devam et.
+		if not lockedTarget or not lockedTarget.Character or not lockedTarget.Character:FindFirstChild("Head") or lockedTarget.Character.Humanoid.Health <= 0 then
+			lockedTarget = getClosestPlayerInFOV()
+		end
+
+		if lockedTarget and lockedTarget.Character and lockedTarget.Character:FindFirstChild("Head") then
+			local targetPos = lockedTarget.Character.Head.Position
 			local curCFrame = Camera.CFrame
 			Camera.CFrame = curCFrame:Lerp(CFrame.new(curCFrame.Position, targetPos), 1 / smoothVal)
 		end
+	else
+		lockedTarget = nil
 	end
 
 	if silentEnabled then
